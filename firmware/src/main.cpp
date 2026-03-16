@@ -6,6 +6,8 @@
 #include "input/button_manager.h"
 #include "output/output_manager.h"
 #include "storage/state_storage.h"
+#include "telemetry/event_bus.h"
+#include "telemetry/recorder.h"
 #include "ui/renderer.h"
 #include "ui/ui_fsm.h"
 #include "utils/logger.h"
@@ -20,12 +22,14 @@ drivers::Adxl345Manager gAdxl;
 drivers::Bh1750Manager gBh;
 output::OutputManager gOutput;
 ui::UiFsm gFsm;
-game::GameEngine gEngine(gStorage, gRenderer, gButtons, gAdxl, gBh, gOutput, gFsm);
+telemetry::EventBus gBus;
+game::GameEngine gEngine(gStorage, gRenderer, gButtons, gAdxl, gBh, gOutput, gFsm, gBus);
 }  // namespace
 
 void setup() {
   utils::initLogger();
   utils::setLogLevel(utils::LogLevel::Info);
+  gBus.subscribe(telemetry::globalRecorderSink);
   gEngine.begin();
 }
 

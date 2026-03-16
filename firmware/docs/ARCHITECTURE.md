@@ -8,6 +8,7 @@
 5. **Platform/hardware layer** (`drivers`, `input`, `output`) — адаптеры железа.
 6. **Storage layer** (`storage`) — NVS persistence + version guard.
 7. **Diagnostics layer** (`utils/logger`) — уровневые логи.
+8. **Telemetry layer** (`telemetry/*`) — event bus, recorder, replay hooks.
 
 ## Boundaries
 - Domain не зависит от Arduino/ST7789/Preferences.
@@ -62,3 +63,8 @@ stateDiagram-v2
   StatusMenu --> Suppress: ACTION long
   ActionMenu --> Suppress: ACTION long
 ```
+
+
+## Storage schema evolution
+- Storage uses versioned envelopes and migration pipeline (v1->v2->v3).
+- Recovery path emits telemetry and falls back to safe defaults when migration is unsupported.

@@ -18,3 +18,8 @@ pio device monitor -b 115200
 - `docs/UI_FSM.md`
 - `docs/STORAGE.md`
 - `docs/TESTING.md`
+
+- docs/MIGRATIONS.md
+- docs/HOST_SIMULATOR.md
+- docs/TELEMETRY_AND_EVENT_BUS.md
+- docs/RENDERER.md

@@ -37,3 +37,8 @@
 ## Смерть/сброс
 `shouldDie()` возвращает `DeathResult` с причиной (`essence|instability|corruption`).
 `resetAfterDeath()` возвращает normalized default state и увеличивает `deaths`.
+
+
+## Cooldown policy
+Actions now have tick-based cooldowns to prevent spam in long sessions.
+Availability is checked centrally via `isActionAvailable()` and persisted across restarts in schema v3.

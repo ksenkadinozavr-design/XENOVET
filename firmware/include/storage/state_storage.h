@@ -1,6 +1,7 @@
 #pragma once
 
 #include "domain/types.h"
+#include "storage/migrations.h"
 
 namespace xenovent::storage {
 
@@ -8,6 +9,8 @@ struct StorageLoadResult {
   domain::CreatureState state{};
   bool loadedFromNvs = false;
   bool versionMismatch = false;
+  MigrationResult migration{};
+  RecoveryStatus recoveryStatus = RecoveryStatus::None;
 };
 
 class StateStorage {

@@ -6,6 +6,7 @@ namespace xenovent::domain {
 
 namespace {
 bool canPerform(const CreatureState& state, ActionType action) {
+  if (!isActionAvailable(state, action)) return false;
   switch (action) {
     case ActionType::Feed:
       return state.hunger > 5;
@@ -48,6 +49,7 @@ ActionResult applyAction(const CreatureState& state, ActionType action) {
       if (state.hunger < 20) {
         result.after.corruption += 2;  // overfeed side effect
       }
+      result.after.cooldowns.feed = config::balance::kCooldownFeedTicks;
       result.message = "fed";
       break;
     case ActionType::Suppress:
@@ -55,6 +57,7 @@ ActionResult applyAction(const CreatureState& state, ActionType action) {
       result.after.bond -= 6;
       result.after.corruption += 4;
       result.after.suppressTicksRemaining = config::balance::kSuppressDurationTicks;
+      result.after.cooldowns.suppress = config::balance::kCooldownSuppressTicks;
       result.message = "suppressed";
       break;
     case ActionType::Ritual:
@@ -62,6 +65,7 @@ ActionResult applyAction(const CreatureState& state, ActionType action) {
       result.after.corruption += 8;
       result.after.hunger += 6;
       result.after.instability += 2;
+      result.after.cooldowns.ritual = config::balance::kCooldownRitualTicks;
       result.message = "ritual_cast";
       break;
     case ActionType::Meditate:
@@ -71,6 +75,7 @@ ActionResult applyAction(const CreatureState& state, ActionType action) {
       if (state.hunger > 80) {
         result.after.essence -= 3;  // weak focus when starving
       }
+      result.after.cooldowns.meditate = config::balance::kCooldownMeditateTicks;
       result.message = "meditated";
       break;
     case ActionType::Sleep:
@@ -78,6 +83,7 @@ ActionResult applyAction(const CreatureState& state, ActionType action) {
       result.after.essence += 6;
       result.after.instability -= 6;
       result.after.hunger += 5;
+      result.after.cooldowns.sleep = config::balance::kCooldownSleepTicks;
       result.message = "sleep_started";
       break;
     case ActionType::None:

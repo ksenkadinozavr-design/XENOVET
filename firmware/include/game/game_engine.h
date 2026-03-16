@@ -10,6 +10,7 @@
 #include "storage/state_storage.h"
 #include "ui/renderer.h"
 #include "ui/ui_fsm.h"
+#include "telemetry/event_bus.h"
 
 namespace xenovent::game {
 
@@ -18,7 +19,7 @@ class GameEngine {
   GameEngine(storage::StateStorage& storage, ui::Renderer& renderer,
              input::ButtonManager& buttons, drivers::Adxl345Manager& adxl,
              drivers::Bh1750Manager& bh1750, output::OutputManager& output,
-             ui::UiFsm& fsm);
+             ui::UiFsm& fsm, telemetry::EventBus& bus);
 
   void begin();
   void update();
@@ -36,6 +37,7 @@ class GameEngine {
   drivers::Bh1750Manager& bh1750_;
   output::OutputManager& output_;
   ui::UiFsm& fsm_;
+  telemetry::EventBus& bus_;
 
   domain::CreatureState state_{};
   domain::UiFlags flags_{};

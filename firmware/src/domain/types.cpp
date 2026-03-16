@@ -41,6 +41,11 @@ CreatureState normalizeState(const CreatureState& state) {
   }
   if (out.sleepTicksRemaining > 1000) out.sleepTicksRemaining = 1000;
   if (out.suppressTicksRemaining > 1000) out.suppressTicksRemaining = 1000;
+  if (out.cooldowns.feed > 1000) out.cooldowns.feed = 1000;
+  if (out.cooldowns.suppress > 1000) out.cooldowns.suppress = 1000;
+  if (out.cooldowns.ritual > 1000) out.cooldowns.ritual = 1000;
+  if (out.cooldowns.meditate > 1000) out.cooldowns.meditate = 1000;
+  if (out.cooldowns.sleep > 1000) out.cooldowns.sleep = 1000;
   return out;
 }
 
@@ -52,6 +57,28 @@ bool isValidState(const CreatureState& state) {
       state.bond >= config::balance::kStatMin && state.bond <= config::balance::kStatMax &&
       state.corruption >= config::balance::kStatMin && state.corruption <= config::balance::kStatMax;
   return statsValid && isKnownForm(state.form);
+}
+
+uint32_t getRemainingCooldown(const CreatureState& state, ActionType action) {
+  switch (action) {
+    case ActionType::Feed:
+      return state.cooldowns.feed;
+    case ActionType::Suppress:
+      return state.cooldowns.suppress;
+    case ActionType::Ritual:
+      return state.cooldowns.ritual;
+    case ActionType::Meditate:
+      return state.cooldowns.meditate;
+    case ActionType::Sleep:
+      return state.cooldowns.sleep;
+    case ActionType::None:
+      return 0;
+  }
+  return 0;
+}
+
+bool isActionAvailable(const CreatureState& state, ActionType action) {
+  return getRemainingCooldown(state, action) == 0;
 }
 
 int maybeDecayBond(const CreatureState& state, const TickContext& ctx) {
@@ -84,6 +111,13 @@ CreatureState applyTick(const CreatureState& state, const TickContext& ctx) {
   CreatureState out = state;
   const int dt = static_cast<int>(ctx.dtSeconds);
   out.ageSeconds += ctx.dtSeconds;
+
+  auto dec = [dt](uint32_t& v) { v = (v > static_cast<uint32_t>(dt)) ? (v - static_cast<uint32_t>(dt)) : 0; };
+  dec(out.cooldowns.feed);
+  dec(out.cooldowns.suppress);
+  dec(out.cooldowns.ritual);
+  dec(out.cooldowns.meditate);
+  dec(out.cooldowns.sleep);
 
   out.hunger += config::balance::kHungerGainPerSecond * dt;
   out.essence -= config::balance::kEssenceDecayPerSecond * dt;

@@ -36,4 +36,11 @@ constexpr uint32_t kCorruptorMinDeaths = 3;
 constexpr uint32_t kSleepDurationTicks = 3;
 constexpr uint32_t kSuppressDurationTicks = 2;
 
+// Action cooldown policy (ticks).
+constexpr uint32_t kCooldownFeedTicks = 1;
+constexpr uint32_t kCooldownSuppressTicks = 3;
+constexpr uint32_t kCooldownRitualTicks = 4;
+constexpr uint32_t kCooldownMeditateTicks = 2;
+constexpr uint32_t kCooldownSleepTicks = 5;
+
 }  // namespace xenovent::config::balance

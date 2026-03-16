@@ -47,6 +47,10 @@ pio device monitor -b 115200
 - UI transitions: `UI_FSM.md`
 - Хранение состояния: `STORAGE.md`
 - Тесты и покрытие: `TESTING.md`
+- Миграции storage: `MIGRATIONS.md`
+- Host simulator: `HOST_SIMULATOR.md`
+- Telemetry/event bus: `TELEMETRY_AND_EVENT_BUS.md`
+- Renderer 2.0: `RENDERER.md`
 - Сборка: `HOWTO_BUILD.md`
 - Прошивка: `HOWTO_FLASH.md`
 - Запуск/ручная проверка: `HOWTO_RUN.md`

@@ -24,3 +24,8 @@
 ## Повреждённые/отсутствующие данные
 - Нет сохранения -> default state.
 - Несовместимая версия -> default state + warning log.
+
+
+## Cooldown fields (v3)
+Persisted as per-action counters (`feed/suppress/ritual/meditate/sleep`) and restored on boot.
+Old schemas (v1/v2) migrate to v3 with default cooldown values.

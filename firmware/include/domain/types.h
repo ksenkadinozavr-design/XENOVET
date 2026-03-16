@@ -23,6 +23,14 @@ enum class UiScreen : uint8_t {
   Suppress,
 };
 
+struct ActionCooldownState {
+  uint32_t feed = 0;
+  uint32_t suppress = 0;
+  uint32_t ritual = 0;
+  uint32_t meditate = 0;
+  uint32_t sleep = 0;
+};
+
 struct CreatureState {
   int essence = 60;
   int hunger = 40;
@@ -37,6 +45,7 @@ struct CreatureState {
   // Persisted gameplay effects.
   uint32_t sleepTicksRemaining = 0;
   uint32_t suppressTicksRemaining = 0;
+  ActionCooldownState cooldowns{};
 };
 
 struct SensorSnapshot {
@@ -93,6 +102,8 @@ int maybeRecoverEssence(const CreatureState& state, const TickContext& ctx);
 
 CreatureState applyTick(const CreatureState& state, const TickContext& ctx);
 ActionResult applyAction(const CreatureState& state, ActionType action);
+bool isActionAvailable(const CreatureState& state, ActionType action);
+uint32_t getRemainingCooldown(const CreatureState& state, ActionType action);
 UiFlags deriveUiFlags(const CreatureState& state);
 MutationResult checkMutation(const CreatureState& state);
 DeathResult shouldDie(const CreatureState& state);
