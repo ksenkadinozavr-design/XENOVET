@@ -1,9 +1,11 @@
 #include "drivers/adxl345_manager.h"
 
 #include <Adafruit_ADXL345_U.h>
-#include <cmath>
 #include <Arduino.h>
 #include <Wire.h>
+#include <cmath>
+
+#include "utils/logger.h"
 
 namespace xenovent::drivers {
 
@@ -11,18 +13,21 @@ namespace {
 Adafruit_ADXL345_Unified gAdxl(12345);
 }
 
-void Adxl345Manager::begin() {
+SensorHealth Adxl345Manager::begin() {
   Wire.begin();
-  initialized_ = gAdxl.begin();
-  if (!initialized_) {
-    Serial.println("[ADXL345] init failed (TODO: check wiring/address)");
-    return;
+  health_.initialized = gAdxl.begin();
+  health_.degraded = !health_.initialized;
+  if (!health_.initialized) {
+    utils::warn("ADXL345", "init failed, using safe defaults");
+    return health_;
   }
   gAdxl.setRange(ADXL345_RANGE_16_G);
+  utils::info("ADXL345", "ready");
+  return health_;
 }
 
 bool Adxl345Manager::read(float& accelMagnitude) {
-  if (!initialized_) {
+  if (!health_.initialized) {
     accelMagnitude = 0.0f;
     return false;
   }

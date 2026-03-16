@@ -1,34 +1,35 @@
 #pragma once
 
-#include <cstdint>
+#include "config/app_config.h"
+#include "config/game_balance.h"
+#include "config/pins.h"
+#include "config/ui_config.h"
 
 namespace xenovent::config {
 
-constexpr int kStatMin = 0;
-constexpr int kStatMax = 100;
+// Backward-compatible aliases for existing call sites.
+constexpr int kStatMin = balance::kStatMin;
+constexpr int kStatMax = balance::kStatMax;
 
-constexpr uint32_t kFastLoopMs = 33;      // ~30 FPS
-constexpr uint32_t kTickIntervalMs = 5000; // 5 sec game tick
-constexpr uint32_t kAutosaveIntervalMs = 30000;
+constexpr uint32_t kFastLoopMs = ui::kFastLoopMs;
+constexpr uint32_t kTickIntervalMs = balance::kTickIntervalMs;
+constexpr uint32_t kAutosaveIntervalMs = balance::kAutosaveIntervalMs;
 
-// Buttons GPIO (TODO: verify on target PCB)
-constexpr int kPinButtonUp = 4;
-constexpr int kPinButtonAction = 5;
-constexpr int kPinButtonDown = 6;
+constexpr int kPinButtonUp = pins::kButtonUp;
+constexpr int kPinButtonAction = pins::kButtonAction;
+constexpr int kPinButtonDown = pins::kButtonDown;
 
-// Output GPIO (TODO: verify on target PCB)
-constexpr int kPinBuzzer = 7;
-constexpr int kPinVibration = 8;
+constexpr int kPinBuzzer = pins::kBuzzer;
+constexpr int kPinVibration = pins::kVibration;
 
-// ST7789 pins (TODO: verify wiring)
-constexpr int kTftCs = 10;
-constexpr int kTftDc = 9;
-constexpr int kTftRst = 12;
-constexpr int kTftWidth = 240;
-constexpr int kTftHeight = 280;
+constexpr int kTftCs = pins::kTftCs;
+constexpr int kTftDc = pins::kTftDc;
+constexpr int kTftRst = pins::kTftRst;
+constexpr int kTftWidth = ui::kTftWidth;
+constexpr int kTftHeight = ui::kTftHeight;
 
-constexpr uint32_t kDebounceMs = 50;
-constexpr uint32_t kHoldSuppressMs = 3000;
-constexpr uint32_t kHoldInfoComboMs = 2000;
+constexpr uint32_t kDebounceMs = ui::kDebounceMs;
+constexpr uint32_t kHoldSuppressMs = ui::kHoldSuppressMs;
+constexpr uint32_t kHoldInfoComboMs = ui::kHoldInfoComboMs;
 
 }  // namespace xenovent::config

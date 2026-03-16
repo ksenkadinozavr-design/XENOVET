@@ -1,14 +1,17 @@
 #pragma once
 
+#include "drivers/adxl345_manager.h"
+
 namespace xenovent::drivers {
 
 class Bh1750Manager {
  public:
-  void begin();
+  SensorHealth begin();
   bool read(float& lux);
+  SensorHealth health() const { return health_; }
 
  private:
-  bool initialized_ = false;
+  SensorHealth health_{};
 };
 
 }  // namespace xenovent::drivers

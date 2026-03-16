@@ -1,40 +1,33 @@
 # HOWTO_DEBUG
 
-## Serial debug
-Запустить монитор:
+## Serial logs
 ```bash
 cd firmware
 pio device monitor -b 115200
 ```
 
-## Какие логи включены
-- Renderer fallback лог (если ST7789 init failed).
-- ADXL/BH1750 init failed.
-- UI state dump в serial (fallback mode).
+## Что логируется
+- startup sequence,
+- загрузка/сохранение state,
+- action accepted/rejected,
+- death/mutation события,
+- sensor init health.
 
-## Типовые проблемы
+## Если дисплей пустой
+- проверить `config/pins.h` для ST7789,
+- проверить питание и SPI wiring,
+- смотреть serial logs renderer.
 
-### Дисплей пустой
-- Проверьте пины CS/DC/RST в `include/config/constants.h`.
-- Проверьте питание дисплея и SPI wiring.
-- Временно работайте через serial fallback.
+## Если кнопки работают неверно
+- проверить active-low wiring,
+- проверить debounce/hold параметры `config/ui_config.h`,
+- проверить input events через debug logs.
 
-### ADXL345 не отвечает
-- Проверить I2C wiring SDA/SCL.
-- Проверить адрес/подключение питания.
-- Сверить лог `[ADXL345] init failed`.
+## Если сенсоры не отвечают
+- проверить I2C wiring/адреса,
+- убедиться, что fallback логирует degraded mode.
 
-### BH1750 не отвечает
-- Проверить I2C wiring.
-- Проверить, не конфликтует ли адрес на шине.
-- Сверить лог `[BH1750] init failed`.
-
-### Кнопки работают неправильно
-- Проверить active-low wiring и `INPUT_PULLUP`.
-- Проверить GPIO в constants.
-- Проверить debounce/hold тайминги в constants.
-
-### Состояние не сохраняется
-- Убедиться, что прошло autosave окно.
-- Проверить, вызывается ли `saveState`.
-- При необходимости вызвать factory reset и проверить повторно.
+## Если не сохраняется state
+- проверить autosave interval,
+- проверить version mismatch warning,
+- вызвать `resetState()` и повторить тест.

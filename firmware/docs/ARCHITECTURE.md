@@ -1,53 +1,51 @@
 # ARCHITECTURE
 
-## Модули
-- `domain/`: чистая модель и правила изменения состояния.
-- `game/`: orchestration тиков, применение правил, мутаций, автосохранения.
-- `ui/`: FSM экранов и renderer.
-- `input/`: кнопки, debounce/hold/combo.
-- `drivers/`: ADXL345 и BH1750.
-- `storage/`: NVS/Preferences.
-- `output/`: buzzer/vibration.
+## Layered model
+1. **Config layer** (`include/config/*`) — пины, баланс, UI тайминги, app constants.
+2. **Domain layer** (`include/domain`, `src/domain`) — чистая логика состояний/действий/мутаций.
+3. **Game layer** (`include/game`, `src/game`) — tick pipeline, orchestration и интеграция сервисов.
+4. **UI layer** (`include/ui`, `src/ui`) — UI model/FSM/render model.
+5. **Platform/hardware layer** (`drivers`, `input`, `output`) — адаптеры железа.
+6. **Storage layer** (`storage`) — NVS persistence + version guard.
+7. **Diagnostics layer** (`utils/logger`) — уровневые логи.
 
-## Поток данных
-1. `ButtonManager` генерирует `InputEvent`.
-2. `UiFsm` решает переходы/действия.
-3. `GameEngine` применяет `applyAction`.
-4. По tick-интервалу движок читает сенсоры и вызывает `processTick`.
-5. `Renderer` рисует текущий UI/state.
-6. `StateStorage` автосохраняет dirty-state.
+## Boundaries
+- Domain не зависит от Arduino/ST7789/Preferences.
+- GameEngine оркестрирует сервисы, но не знает деталей draw API.
+- Input interpreter отделён от GPIO polling.
+- Storage изолирован за `StateStorage` API.
 
-## Игровой цикл
-- Fast loop (~30 FPS): input -> fsm -> render.
-- Tick loop (5s): sensor snapshot -> applyTick -> shouldDie/reset -> mutation checks.
-
-## FSM переходы
-- Main + UP short -> StatusMenu
-- Main + DOWN short -> ActionMenu
-- ActionMenu + UP/DOWN short -> смена action
-- ActionMenu + ACTION short -> apply action + Main
-- Status/Info/Suppress + ACTION short -> Main
-- Любой экран + UP+DOWN hold 2s -> InfoScreen
-- Любой экран + ACTION hold 3s -> Suppress + force Suppress action
-
-## Разделение логики
-- Platform-independent: `domain/*`, `game/rules`, `game/mutations`, `ui/ui_fsm`.
-- Hardware-specific: `drivers/*`, `input/button_manager`, `storage/state_storage`, `ui/renderer`, `output/output_manager`.
-
-## Mermaid: component
+## Tick flow
 ```mermaid
-graph LR
-  BTN[ButtonManager] --> FSM[UI FSM]
-  FSM --> ENG[GameEngine]
-  ADXL[ADXL345 Manager] --> ENG
-  BH[BH1750 Manager] --> ENG
-  ENG --> RULES[Rules + Mutations]
-  ENG --> REND[Renderer]
-  ENG --> NVS[StateStorage]
-  ENG --> OUT[OutputManager]
+flowchart TD
+  A[GameEngine tick timer] --> B[Build TickContext]
+  B --> C[domain::applyTick]
+  C --> D[deriveUiFlags]
+  D --> E[shouldDie]
+  E -- dead --> F[resetAfterDeath]
+  E -- alive --> G[checkMutation]
+  F --> H[TickResult]
+  G --> H[TickResult]
+  H --> I[mark dirty + feedback]
 ```
 
-## Mermaid: state diagram
+## Startup sequence
+```mermaid
+sequenceDiagram
+  participant Main
+  participant Engine
+  participant Storage
+  participant HW as HW services
+  participant UI
+
+  Main->>Engine: begin()
+  Engine->>Storage: begin(), hasSavedState(), loadState()
+  Engine->>HW: buttons/sensors/output begin()
+  Engine->>UI: renderer begin()
+  Engine-->>Main: ready
+```
+
+## UI state diagram
 ```mermaid
 stateDiagram-v2
   [*] --> Main
@@ -57,25 +55,10 @@ stateDiagram-v2
   StatusMenu --> Main: ACTION short(back)
   InfoScreen --> Main: ACTION short(back)
   Suppress --> Main: ACTION short(back)
-  Main --> InfoScreen: UP+DOWN hold 2s
-  StatusMenu --> InfoScreen: UP+DOWN hold 2s
-  ActionMenu --> InfoScreen: UP+DOWN hold 2s
-  Main --> Suppress: ACTION hold 3s
-  StatusMenu --> Suppress: ACTION hold 3s
-  ActionMenu --> Suppress: ACTION hold 3s
-```
-
-## Mermaid: tick processing flow
-```mermaid
-flowchart TD
-  A[Tick timer elapsed] --> B[Read sensors]
-  B --> C[applyTick]
-  C --> D{shouldDie?}
-  D -- yes --> E[resetAfterDeath]
-  D -- no --> F[checkMutation]
-  E --> G[mark dirty]
-  F --> G[mark dirty]
-  G --> H{autosave due?}
-  H -- yes --> I[saveState]
-  H -- no --> J[continue]
+  Main --> InfoScreen: UP+DOWN hold
+  StatusMenu --> InfoScreen: UP+DOWN hold
+  ActionMenu --> InfoScreen: UP+DOWN hold
+  Main --> Suppress: ACTION long
+  StatusMenu --> Suppress: ACTION long
+  ActionMenu --> Suppress: ACTION long
 ```

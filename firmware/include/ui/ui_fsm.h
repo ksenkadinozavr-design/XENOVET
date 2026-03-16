@@ -1,32 +1,33 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
-#include "domain/actions.h"
 #include "input/input_events.h"
 #include "ui/ui_state.h"
 
 namespace xenovent::ui {
 
 struct UiTransition {
-  UiState nextState = UiState::Main;
+  UiModel model{};
   domain::ActionType triggeredAction = domain::ActionType::None;
-  bool forceSuppress = false;
+  bool illegalTransition = false;
 };
 
 class UiFsm {
  public:
   UiFsm();
 
-  UiTransition handleEvent(const input::InputEvent& event);
+  UiTransition handleEvent(const input::InputEvent& event, uint32_t nowMs);
+  UiTransition tick(uint32_t nowMs);
+  void setTransientMessage(const char* msg);
 
-  UiState currentState() const { return state_; }
-  domain::ActionType selectedAction() const;
+  const UiModel& model() const { return model_; }
 
  private:
-  void cycleActionSelection(int direction);
+  domain::ActionType cycleAction(domain::ActionType current, int direction) const;
 
-  UiState state_ = UiState::Main;
+  UiModel model_{};
   std::array<domain::ActionType, 5> actions_ = {
       domain::ActionType::Feed,
       domain::ActionType::Suppress,
@@ -34,7 +35,6 @@ class UiFsm {
       domain::ActionType::Meditate,
       domain::ActionType::Sleep,
   };
-  size_t selectedIndex_ = 0;
 };
 
 }  // namespace xenovent::ui

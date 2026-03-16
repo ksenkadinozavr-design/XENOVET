@@ -1,13 +1,19 @@
 #pragma once
 
-#include "domain/actions.h"
-
 namespace xenovent::output {
+
+enum class FeedbackPattern {
+  Confirm,
+  Error,
+  Warning,
+  Mutation,
+  Death,
+};
 
 class OutputManager {
  public:
   void begin();
-  void notifyAction(domain::ActionType action);
+  void play(FeedbackPattern pattern);
 };
 
 }  // namespace xenovent::output

@@ -4,6 +4,15 @@
 
 namespace xenovent::game {
 
-void processTick(xenovent::domain::CreatureState& state, const xenovent::domain::TickContext& ctx);
+struct TickResult {
+  domain::CreatureState state{};
+  domain::UiFlags flags{};
+  domain::MutationResult mutation{};
+  domain::DeathResult death{};
+  bool recommendSave = false;
+  const char* summary = "tick";
+};
+
+TickResult processTick(const domain::CreatureState& state, const domain::TickContext& ctx);
 
 }  // namespace xenovent::game

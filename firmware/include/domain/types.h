@@ -6,11 +6,21 @@
 
 namespace xenovent::domain {
 
-enum class CreatureForm {
-  Seed,
+enum class CreatureForm : uint8_t {
+  Seed = 0,
   Wisp,
+  Sentinel,
   Shade,
   Ascendant,
+  Ruinborn,
+};
+
+enum class UiScreen : uint8_t {
+  Main = 0,
+  StatusMenu,
+  ActionMenu,
+  InfoScreen,
+  Suppress,
 };
 
 struct CreatureState {
@@ -23,6 +33,10 @@ struct CreatureState {
   CreatureForm form = CreatureForm::Seed;
   uint32_t ageSeconds = 0;
   uint32_t deaths = 0;
+
+  // Persisted gameplay effects.
+  uint32_t sleepTicksRemaining = 0;
+  uint32_t suppressTicksRemaining = 0;
 };
 
 struct SensorSnapshot {
@@ -35,6 +49,7 @@ struct SensorSnapshot {
 struct TickContext {
   uint32_t dtSeconds = 0;
   SensorSnapshot sensors{};
+  bool ritualResidual = false;
 };
 
 struct UiFlags {
@@ -43,16 +58,47 @@ struct UiFlags {
   bool highCorruption = false;
   bool bonded = false;
   bool nearDeath = false;
+  bool sleeping = false;
+  bool suppressed = false;
+};
+
+struct MutationResult {
+  bool mutated = false;
+  CreatureForm from = CreatureForm::Seed;
+  CreatureForm to = CreatureForm::Seed;
+  const char* reason = "none";
+};
+
+struct ActionResult {
+  bool accepted = false;
+  ActionType action = ActionType::None;
+  CreatureState before{};
+  CreatureState after{};
+  const char* message = "ignored";
+};
+
+struct DeathResult {
+  bool died = false;
+  const char* reason = "alive";
 };
 
 int clampStat(int value);
-void applyTick(CreatureState& state, const TickContext& ctx);
-void applyAction(CreatureState& state, ActionType action);
+CreatureState buildDefaultState();
+CreatureState normalizeState(const CreatureState& state);
+
+int maybeDecayBond(const CreatureState& state, const TickContext& ctx);
+int maybeIncreaseCorruption(const CreatureState& state, const TickContext& ctx);
+int maybeRecoverEssence(const CreatureState& state, const TickContext& ctx);
+
+CreatureState applyTick(const CreatureState& state, const TickContext& ctx);
+ActionResult applyAction(const CreatureState& state, ActionType action);
 UiFlags deriveUiFlags(const CreatureState& state);
-bool shouldDie(const CreatureState& state);
-void resetAfterDeath(CreatureState& state);
+MutationResult checkMutation(const CreatureState& state);
+DeathResult shouldDie(const CreatureState& state);
+CreatureState resetAfterDeath(const CreatureState& state);
 
 const char* toString(CreatureForm form);
 const char* toString(ActionType action);
+const char* toString(UiScreen screen);
 
 }  // namespace xenovent::domain

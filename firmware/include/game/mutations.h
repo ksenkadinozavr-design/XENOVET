@@ -4,6 +4,6 @@
 
 namespace xenovent::game {
 
-bool checkMutation(xenovent::domain::CreatureState& state);
+domain::MutationResult evaluateMutation(const domain::CreatureState& state);
 
 }  // namespace xenovent::game

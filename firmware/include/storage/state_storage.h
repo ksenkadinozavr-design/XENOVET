@@ -4,13 +4,20 @@
 
 namespace xenovent::storage {
 
+struct StorageLoadResult {
+  domain::CreatureState state{};
+  bool loadedFromNvs = false;
+  bool versionMismatch = false;
+};
+
 class StateStorage {
  public:
   void begin();
-  void saveState(const domain::CreatureState& state);
-  domain::CreatureState loadState();
+  bool hasSavedState();
+  bool saveState(const domain::CreatureState& state);
+  StorageLoadResult loadState();
   domain::CreatureState defaultState() const;
-  void factoryReset();
+  bool resetState();
 
  private:
   bool initialized_ = false;

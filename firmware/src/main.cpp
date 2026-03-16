@@ -12,6 +12,7 @@
 
 using namespace xenovent;
 
+namespace {
 storage::StateStorage gStorage;
 ui::Renderer gRenderer;
 input::ButtonManager gButtons;
@@ -20,9 +21,11 @@ drivers::Bh1750Manager gBh;
 output::OutputManager gOutput;
 ui::UiFsm gFsm;
 game::GameEngine gEngine(gStorage, gRenderer, gButtons, gAdxl, gBh, gOutput, gFsm);
+}  // namespace
 
 void setup() {
   utils::initLogger();
+  utils::setLogLevel(utils::LogLevel::Info);
   gEngine.begin();
 }
 

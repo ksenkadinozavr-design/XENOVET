@@ -5,17 +5,28 @@
 
 namespace xenovent::ui {
 
+struct RenderModel {
+  UiModel ui{};
+  domain::CreatureState creature{};
+  domain::UiFlags flags{};
+};
+
 class Renderer {
  public:
   void begin();
-  void render(UiState state, const domain::CreatureState& creature,
-              domain::ActionType selectedAction);
+  void render(const RenderModel& model);
 
  private:
   void drawHeader(const char* title);
-  void drawCreature(const domain::CreatureState& creature);
   void drawStatLine(const char* name, int value, int y);
-  void drawAction(domain::ActionType action);
+  void drawWarnings(const domain::UiFlags& flags);
+
+  void renderMainScreen(const RenderModel& model);
+  void renderStatusMenu(const RenderModel& model);
+  void renderActionMenu(const RenderModel& model);
+  void renderInfoScreen(const RenderModel& model);
+  void renderSuppressScreen(const RenderModel& model);
+  void renderTransientOverlay(const RenderModel& model);
 
   bool initialized_ = false;
 };

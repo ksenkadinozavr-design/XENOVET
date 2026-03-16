@@ -4,55 +4,86 @@
 
 using namespace xenovent;
 
-void test_clamp_stat() {
-  TEST_ASSERT_EQUAL(0, domain::clampStat(-10));
-  TEST_ASSERT_EQUAL(100, domain::clampStat(120));
-  TEST_ASSERT_EQUAL(55, domain::clampStat(55));
+void test_clamp_and_normalize() {
+  domain::CreatureState st;
+  st.essence = -10;
+  st.hunger = 140;
+  st.instability = 20;
+  st.bond = 999;
+  st.corruption = -5;
+
+  auto norm = domain::normalizeState(st);
+  TEST_ASSERT_EQUAL(0, norm.essence);
+  TEST_ASSERT_EQUAL(100, norm.hunger);
+  TEST_ASSERT_EQUAL(100, norm.bond);
+  TEST_ASSERT_EQUAL(0, norm.corruption);
 }
 
-void test_apply_tick_changes_state() {
-  domain::CreatureState st;
-  st.essence = 50;
-  st.hunger = 50;
-  st.instability = 20;
+void test_apply_tick_sensor_recovery() {
+  domain::CreatureState st = domain::buildDefaultState();
+  st.essence = 40;
 
   domain::TickContext ctx;
   ctx.dtSeconds = 5;
   ctx.sensors.validLight = true;
-  ctx.sensors.lightLux = 600.0f;
+  ctx.sensors.lightLux = 700.0f;
 
-  domain::applyTick(st, ctx);
-
-  TEST_ASSERT_TRUE(st.ageSeconds >= 5);
-  TEST_ASSERT_TRUE(st.hunger > 50);
-  TEST_ASSERT_TRUE(st.essence >= 45);
+  auto after = domain::applyTick(st, ctx);
+  TEST_ASSERT_TRUE(after.ageSeconds >= 5);
+  TEST_ASSERT_TRUE(after.essence >= 40);
 }
 
-void test_apply_action_feed() {
-  domain::CreatureState st;
-  st.hunger = 80;
-  st.essence = 40;
-  domain::applyAction(st, domain::ActionType::Feed);
-  TEST_ASSERT_TRUE(st.hunger < 80);
-  TEST_ASSERT_TRUE(st.essence > 40);
+void test_actions_all() {
+  domain::CreatureState st = domain::buildDefaultState();
+
+  auto feed = domain::applyAction(st, domain::ActionType::Feed);
+  TEST_ASSERT_TRUE(feed.accepted);
+  TEST_ASSERT_TRUE(feed.after.hunger < st.hunger);
+
+  auto suppress = domain::applyAction(st, domain::ActionType::Suppress);
+  TEST_ASSERT_TRUE(suppress.accepted);
+  TEST_ASSERT_TRUE(suppress.after.suppressTicksRemaining > 0);
+
+  auto ritual = domain::applyAction(st, domain::ActionType::Ritual);
+  TEST_ASSERT_TRUE(ritual.accepted);
+  TEST_ASSERT_TRUE(ritual.after.corruption > st.corruption);
+
+  auto meditate = domain::applyAction(st, domain::ActionType::Meditate);
+  TEST_ASSERT_TRUE(meditate.accepted);
+  TEST_ASSERT_TRUE(meditate.after.instability < st.instability);
+
+  auto sleep = domain::applyAction(st, domain::ActionType::Sleep);
+  TEST_ASSERT_TRUE(sleep.accepted);
+  TEST_ASSERT_TRUE(sleep.after.sleepTicksRemaining > 0);
 }
 
-void test_die_and_reset() {
-  domain::CreatureState st;
+void test_should_die_and_reset() {
+  domain::CreatureState st = domain::buildDefaultState();
   st.essence = 0;
-  TEST_ASSERT_TRUE(domain::shouldDie(st));
-  domain::resetAfterDeath(st);
-  TEST_ASSERT_EQUAL(domain::CreatureForm::Seed, st.form);
-  TEST_ASSERT_EQUAL(1, st.deaths);
-  TEST_ASSERT_EQUAL(0, st.ageSeconds);
+  auto death = domain::shouldDie(st);
+  TEST_ASSERT_TRUE(death.died);
+  auto reset = domain::resetAfterDeath(st);
+  TEST_ASSERT_EQUAL(1, reset.deaths);
+  TEST_ASSERT_EQUAL(domain::CreatureForm::Seed, reset.form);
+}
+
+void test_mutation_transition() {
+  domain::CreatureState st = domain::buildDefaultState();
+  st.corruption = 80;
+  st.instability = 85;
+
+  auto m = domain::checkMutation(st);
+  TEST_ASSERT_TRUE(m.mutated);
+  TEST_ASSERT_EQUAL(domain::CreatureForm::Shade, m.to);
 }
 
 void setup() {
   UNITY_BEGIN();
-  RUN_TEST(test_clamp_stat);
-  RUN_TEST(test_apply_tick_changes_state);
-  RUN_TEST(test_apply_action_feed);
-  RUN_TEST(test_die_and_reset);
+  RUN_TEST(test_clamp_and_normalize);
+  RUN_TEST(test_apply_tick_sensor_recovery);
+  RUN_TEST(test_actions_all);
+  RUN_TEST(test_should_die_and_reset);
+  RUN_TEST(test_mutation_transition);
   UNITY_END();
 }
 

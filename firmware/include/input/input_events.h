@@ -1,23 +1,26 @@
 #pragma once
 
+#include <cstdint>
+
 namespace xenovent::input {
 
-enum class ButtonId {
-  Up,
+enum class ButtonId : uint8_t {
+  Up = 0,
   Action,
   Down,
 };
 
-enum class InputEventType {
+enum class InputEventType : uint8_t {
+  None = 0,
   ShortPress,
-  Hold,
-  ComboHold,
+  LongPress,
+  ComboUpDownHold,
 };
 
 struct InputEvent {
-  InputEventType type;
+  InputEventType type = InputEventType::None;
   ButtonId button = ButtonId::Action;
-  bool comboUpDown = false;
+  bool consumed = false;
 };
 
 }  // namespace xenovent::input

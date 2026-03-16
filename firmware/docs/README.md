@@ -1,42 +1,54 @@
-# XENOVENT Firmware (ESP32-S3, PlatformIO, Arduino)
+# XENOVENT Firmware Docs
 
-Firmware MVP для портативного устройства XENOVENT.
-
-## Что реализовано
-- Domain model сущности Voidborn и игровой state.
-- Tick-based game engine с fast loop + tick loop.
-- Правила деградации/взаимодействия статов, смерть/перерождение, мутации.
-- UI FSM экранов: Main, StatusMenu, ActionMenu, InfoScreen, Suppress.
-- Input manager (short press, hold, UP+DOWN combo, debounce).
-- Sensor managers: ADXL345, BH1750.
-- Storage manager: Preferences/NVS (save/load/factory reset).
-- Output manager: buzzer/vibration abstraction.
-- Unit tests для domain/FSM.
+## Что это
+Firmware для игрового устройства XENOVENT с модульной архитектурой:
+- domain (чистая логика),
+- game/application orchestration,
+- ui/fsm/render,
+- input/sensors/output adapters,
+- storage (NVS/Preferences).
 
 ## Стек
-- MCU: ESP32-S3
-- Framework: Arduino
-- Build: PlatformIO
-- Язык: C++17
+- ESP32-S3
+- Arduino framework
+- PlatformIO
+- C++17
 
-## Структура
-См. `ARCHITECTURE.md`.
+## Структура проекта
+```text
+firmware/
+  include/
+    config/        # pins, balance, ui/app config
+    domain/        # types/actions/pure rules
+    game/          # tick pipeline and engine contracts
+    ui/            # ui model, fsm, renderer contracts
+    input/         # input events + interpreter
+    drivers/       # sensor managers
+    storage/       # state persistence
+    output/        # feedback patterns
+    utils/         # logging
+  src/
+  test/
+  docs/
+```
 
-## Быстрый старт
+## Основные команды
 ```bash
 cd firmware
 pio run
 pio test
 pio run -t upload
-pio device monitor
+pio device monitor -b 115200
 ```
 
-## Расширение проекта
-- Добавляйте новые действия в `domain/actions.h` + `domain/actions.cpp`.
-- Добавляйте мутации в `game/mutations.cpp`.
-- Добавляйте UI-экраны через `ui/ui_state.h` и `ui/ui_fsm.cpp`.
-- Добавляйте сенсорные источники через `drivers/*` + интеграцию в `game_engine.cpp`.
-
-
-## Эмуляция
-- См. `HOWTO_SIMULATE.md` для запуска в Wokwi и ограничений эмуляции.
+## Навигация по документации
+- Архитектура: `ARCHITECTURE.md`
+- Игровые правила/баланс: `GAME_LOGIC.md`
+- UI transitions: `UI_FSM.md`
+- Хранение состояния: `STORAGE.md`
+- Тесты и покрытие: `TESTING.md`
+- Сборка: `HOWTO_BUILD.md`
+- Прошивка: `HOWTO_FLASH.md`
+- Запуск/ручная проверка: `HOWTO_RUN.md`
+- Отладка: `HOWTO_DEBUG.md`
+- Эмуляция: `HOWTO_SIMULATE.md`

@@ -2,24 +2,48 @@
 
 #include <Arduino.h>
 
-#include "config/constants.h"
+#include "config/pins.h"
 
 namespace xenovent::output {
 
+namespace {
+void pulse(int pin, int durationMs) {
+  digitalWrite(pin, HIGH);
+  delay(durationMs);
+  digitalWrite(pin, LOW);
+}
+}  // namespace
+
 void OutputManager::begin() {
-  pinMode(config::kPinBuzzer, OUTPUT);
-  pinMode(config::kPinVibration, OUTPUT);
-  digitalWrite(config::kPinBuzzer, LOW);
-  digitalWrite(config::kPinVibration, LOW);
+  pinMode(config::pins::kBuzzer, OUTPUT);
+  pinMode(config::pins::kVibration, OUTPUT);
+  digitalWrite(config::pins::kBuzzer, LOW);
+  digitalWrite(config::pins::kVibration, LOW);
 }
 
-void OutputManager::notifyAction(domain::ActionType action) {
-  const int pulseMs = (action == domain::ActionType::Suppress) ? 180 : 80;
-  digitalWrite(config::kPinVibration, HIGH);
-  digitalWrite(config::kPinBuzzer, HIGH);
-  delay(pulseMs);
-  digitalWrite(config::kPinVibration, LOW);
-  digitalWrite(config::kPinBuzzer, LOW);
+void OutputManager::play(FeedbackPattern pattern) {
+  switch (pattern) {
+    case FeedbackPattern::Confirm:
+      pulse(config::pins::kBuzzer, 50);
+      break;
+    case FeedbackPattern::Error:
+      pulse(config::pins::kVibration, 120);
+      pulse(config::pins::kBuzzer, 120);
+      break;
+    case FeedbackPattern::Warning:
+      pulse(config::pins::kVibration, 80);
+      break;
+    case FeedbackPattern::Mutation:
+      pulse(config::pins::kBuzzer, 40);
+      delay(20);
+      pulse(config::pins::kBuzzer, 60);
+      break;
+    case FeedbackPattern::Death:
+      pulse(config::pins::kVibration, 180);
+      delay(30);
+      pulse(config::pins::kVibration, 180);
+      break;
+  }
 }
 
 }  // namespace xenovent::output

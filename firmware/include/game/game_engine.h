@@ -5,7 +5,6 @@
 #include "domain/types.h"
 #include "drivers/adxl345_manager.h"
 #include "drivers/bh1750_manager.h"
-#include "game/rules.h"
 #include "input/button_manager.h"
 #include "output/output_manager.h"
 #include "storage/state_storage.h"
@@ -25,8 +24,8 @@ class GameEngine {
   void update();
 
  private:
-  void handleInput(const input::InputEvent& event);
-  void updateTick(uint32_t nowMs);
+  void handleInput(const input::InputEvent& event, uint32_t nowMs);
+  void runTick(uint32_t nowMs);
   domain::SensorSnapshot readSensors();
   void maybeAutosave(uint32_t nowMs);
 
@@ -39,10 +38,13 @@ class GameEngine {
   ui::UiFsm& fsm_;
 
   domain::CreatureState state_{};
+  domain::UiFlags flags_{};
+
   uint32_t lastFastLoopMs_ = 0;
   uint32_t lastTickMs_ = 0;
   uint32_t lastAutosaveMs_ = 0;
   bool dirty_ = false;
+  bool ritualResidual_ = false;
 };
 
 }  // namespace xenovent::game

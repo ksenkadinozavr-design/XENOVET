@@ -2,7 +2,10 @@
 
 #include <Arduino.h>
 
-#include "config/constants.h"
+#include "config/game_balance.h"
+#include "config/ui_config.h"
+#include "game/rules.h"
+#include "utils/logger.h"
 
 namespace xenovent::game {
 
@@ -19,51 +22,58 @@ GameEngine::GameEngine(storage::StateStorage& storage, ui::Renderer& renderer,
       fsm_(fsm) {}
 
 void GameEngine::begin() {
+  utils::info("Engine", "startup sequence begin");
   storage_.begin();
-  state_ = storage_.loadState();
+
+  if (storage_.hasSavedState()) {
+    auto loaded = storage_.loadState();
+    state_ = loaded.state;
+    utils::info("Engine", "state loaded from nvs=%d versionMismatch=%d", loaded.loadedFromNvs,
+                loaded.versionMismatch);
+  } else {
+    state_ = storage_.defaultState();
+    utils::info("Engine", "default state initialized");
+  }
+
   buttons_.begin();
   adxl_.begin();
   bh1750_.begin();
   output_.begin();
   renderer_.begin();
+
+  flags_ = domain::deriveUiFlags(state_);
+
   lastFastLoopMs_ = millis();
   lastTickMs_ = lastFastLoopMs_;
   lastAutosaveMs_ = lastFastLoopMs_;
+  utils::info("Engine", "startup sequence done");
 }
 
-void GameEngine::update() {
-  const uint32_t now = millis();
+void GameEngine::handleInput(const input::InputEvent& event, uint32_t nowMs) {
+  const auto t = fsm_.handleEvent(event, nowMs);
 
-  input::InputEvent event;
-  while (buttons_.pollEvent(event, now)) {
-    handleInput(event);
+  if (t.illegalTransition) {
+    output_.play(output::FeedbackPattern::Error);
+    return;
   }
 
-  if (now - lastTickMs_ >= config::kTickIntervalMs) {
-    updateTick(now);
-  }
-
-  if (now - lastFastLoopMs_ >= config::kFastLoopMs) {
-    renderer_.render(fsm_.currentState(), state_, fsm_.selectedAction());
-    lastFastLoopMs_ = now;
-  }
-
-  maybeAutosave(now);
-}
-
-void GameEngine::handleInput(const input::InputEvent& event) {
-  ui::UiTransition transition = fsm_.handleEvent(event);
-
-  if (transition.triggeredAction != domain::ActionType::None) {
-    domain::applyAction(state_, transition.triggeredAction);
-    output_.notifyAction(transition.triggeredAction);
-    dirty_ = true;
-  }
-
-  if (transition.forceSuppress) {
-    domain::applyAction(state_, domain::ActionType::Suppress);
-    output_.notifyAction(domain::ActionType::Suppress);
-    dirty_ = true;
+  if (t.triggeredAction != domain::ActionType::None) {
+    const auto actionResult = domain::applyAction(state_, t.triggeredAction);
+    if (actionResult.accepted) {
+      state_ = actionResult.after;
+      flags_ = domain::deriveUiFlags(state_);
+      dirty_ = true;
+      ritualResidual_ = (t.triggeredAction == domain::ActionType::Ritual);
+      fsm_.setTransientMessage(actionResult.message);
+      output_.play(output::FeedbackPattern::Confirm);
+      utils::info("Action", "%s accepted msg=%s", domain::toString(t.triggeredAction),
+                  actionResult.message);
+    } else {
+      fsm_.setTransientMessage(actionResult.message);
+      output_.play(output::FeedbackPattern::Warning);
+      utils::warn("Action", "%s rejected reason=%s", domain::toString(t.triggeredAction),
+                  actionResult.message);
+    }
   }
 }
 
@@ -74,30 +84,73 @@ domain::SensorSnapshot GameEngine::readSensors() {
   return snapshot;
 }
 
-void GameEngine::updateTick(uint32_t nowMs) {
+void GameEngine::runTick(uint32_t nowMs) {
   const uint32_t elapsedMs = nowMs - lastTickMs_;
   const uint32_t dtSec = elapsedMs / 1000;
-  if (dtSec == 0) {
-    return;
-  }
+  if (dtSec == 0) return;
 
   domain::TickContext ctx;
   ctx.dtSeconds = dtSec;
   ctx.sensors = readSensors();
-  processTick(state_, ctx);
-  dirty_ = true;
+  ctx.ritualResidual = ritualResidual_;
+
+  const auto tickResult = processTick(state_, ctx);
+  state_ = tickResult.state;
+  flags_ = tickResult.flags;
+  ritualResidual_ = false;
+
+  if (tickResult.death.died) {
+    output_.play(output::FeedbackPattern::Death);
+    fsm_.setTransientMessage("death-reset");
+    utils::warn("Tick", "death reason=%s", tickResult.death.reason);
+  } else if (tickResult.mutation.mutated) {
+    output_.play(output::FeedbackPattern::Mutation);
+    fsm_.setTransientMessage(tickResult.mutation.reason);
+    utils::info("Tick", "mutation %s -> %s (%s)", domain::toString(tickResult.mutation.from),
+                domain::toString(tickResult.mutation.to), tickResult.mutation.reason);
+  }
+
+  dirty_ = dirty_ || tickResult.recommendSave;
   lastTickMs_ = nowMs;
 }
 
 void GameEngine::maybeAutosave(uint32_t nowMs) {
-  if (!dirty_) {
-    return;
-  }
-  if (nowMs - lastAutosaveMs_ >= config::kAutosaveIntervalMs) {
-    storage_.saveState(state_);
+  if (!dirty_) return;
+  if (nowMs - lastAutosaveMs_ < config::balance::kAutosaveIntervalMs) return;
+
+  if (storage_.saveState(state_)) {
     dirty_ = false;
     lastAutosaveMs_ = nowMs;
+    utils::debug("Storage", "autosave ok");
+  } else {
+    utils::error("Storage", "autosave failed");
   }
+}
+
+void GameEngine::update() {
+  const uint32_t now = millis();
+
+  input::InputEvent event;
+  while (buttons_.pollEvent(event, now)) {
+    handleInput(event, now);
+  }
+
+  fsm_.tick(now);
+
+  if (now - lastTickMs_ >= config::balance::kTickIntervalMs) {
+    runTick(now);
+  }
+
+  if (now - lastFastLoopMs_ >= config::ui::kFastLoopMs) {
+    ui::RenderModel model;
+    model.ui = fsm_.model();
+    model.creature = state_;
+    model.flags = flags_;
+    renderer_.render(model);
+    lastFastLoopMs_ = now;
+  }
+
+  maybeAutosave(now);
 }
 
 }  // namespace xenovent::game

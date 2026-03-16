@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "config/constants.h"
+#include "config/pins.h"
 
 namespace xenovent::input {
 
@@ -10,84 +10,32 @@ namespace {
 int toPin(ButtonId id) {
   switch (id) {
     case ButtonId::Up:
-      return config::kPinButtonUp;
+      return config::pins::kButtonUp;
     case ButtonId::Action:
-      return config::kPinButtonAction;
+      return config::pins::kButtonAction;
     case ButtonId::Down:
-      return config::kPinButtonDown;
+      return config::pins::kButtonDown;
   }
   return -1;
-}
-
-size_t toIndex(ButtonId id) {
-  switch (id) {
-    case ButtonId::Up:
-      return 0;
-    case ButtonId::Action:
-      return 1;
-    case ButtonId::Down:
-      return 2;
-  }
-  return 0;
 }
 }  // namespace
 
 void ButtonManager::begin() {
-  pinMode(config::kPinButtonUp, INPUT_PULLUP);
-  pinMode(config::kPinButtonAction, INPUT_PULLUP);
-  pinMode(config::kPinButtonDown, INPUT_PULLUP);
+  pinMode(config::pins::kButtonUp, INPUT_PULLUP);
+  pinMode(config::pins::kButtonAction, INPUT_PULLUP);
+  pinMode(config::pins::kButtonDown, INPUT_PULLUP);
 }
 
 bool ButtonManager::readRaw(ButtonId button) const {
-  const int pin = toPin(button);
-  return digitalRead(pin) == LOW;  // active low
+  return digitalRead(toPin(button)) == LOW;  // active low
 }
 
 bool ButtonManager::pollEvent(InputEvent& outEvent, uint32_t nowMs) {
-  for (ButtonId id : {ButtonId::Up, ButtonId::Action, ButtonId::Down}) {
-    auto& st = states_[toIndex(id)];
-    const bool raw = readRaw(id);
-
-    if (raw != st.lastReadPressed) {
-      st.lastChangeMs = nowMs;
-      st.lastReadPressed = raw;
-    }
-
-    if (nowMs - st.lastChangeMs >= config::kDebounceMs && raw != st.stablePressed) {
-      st.stablePressed = raw;
-      if (st.stablePressed) {
-        st.pressedSinceMs = nowMs;
-        st.holdFired = false;
-      } else {
-        if (!st.holdFired) {
-          outEvent = InputEvent{InputEventType::ShortPress, id, false};
-          return true;
-        }
-      }
-    }
-
-    if (st.stablePressed && !st.holdFired && id == ButtonId::Action &&
-        nowMs - st.pressedSinceMs >= config::kHoldSuppressMs) {
-      st.holdFired = true;
-      outEvent = InputEvent{InputEventType::Hold, id, false};
-      return true;
-    }
-  }
-
-  auto& up = states_[toIndex(ButtonId::Up)];
-  auto& down = states_[toIndex(ButtonId::Down)];
-  if (up.stablePressed && down.stablePressed) {
-    const uint32_t holdMs = nowMs - (up.pressedSinceMs > down.pressedSinceMs ? up.pressedSinceMs : down.pressedSinceMs);
-    if (!comboHoldFired_ && holdMs >= config::kHoldInfoComboMs) {
-      comboHoldFired_ = true;
-      outEvent = InputEvent{InputEventType::ComboHold, ButtonId::Action, true};
-      return true;
-    }
-  } else {
-    comboHoldFired_ = false;
-  }
-
-  return false;
+  RawButtonState raw;
+  raw.upPressed = readRaw(ButtonId::Up);
+  raw.actionPressed = readRaw(ButtonId::Action);
+  raw.downPressed = readRaw(ButtonId::Down);
+  return interpreter_.update(raw, nowMs, outEvent);
 }
 
 }  // namespace xenovent::input

@@ -1,42 +1,24 @@
 # HOWTO_RUN
 
-## После запуска
-- Загружается state из NVS.
-- Инициализируются кнопки, сенсоры, output, renderer.
-- Запускаются fast loop и tick loop.
+## После старта
+- Инициализируются logger, storage, input/sensors/output/renderer.
+- Загружается state из NVS или default fallback.
+- Запускаются fast loop + tick loop + autosave policy.
 
-## Управление кнопками
+## Контролы
 - UP short -> StatusMenu
 - DOWN short -> ActionMenu
-- ACTION short -> back/confirm
-- UP+DOWN hold 2s -> InfoScreen
-- ACTION hold 3s -> Suppress action
+- ACTION short -> confirm/back
+- ACTION long -> Suppress action
+- UP+DOWN hold -> InfoScreen
 
-## Проверка экранов
-1. Перейдите в StatusMenu/ActionMenu.
-2. В ActionMenu пролистывайте UP/DOWN и подтвердите ACTION.
-3. Убедитесь, что после confirm возврат на Main.
+## Ручной smoke scenario
+1. Откройте ActionMenu.
+2. Выберите FEED и подтвердите.
+3. Убедитесь, что показан transient message.
+4. Подождите минимум один tick.
+5. Проверьте, что статы изменились и autosave отработал позже.
 
-## Проверка тиков
-Подождите >=5 секунд: должны обновляться статы (hunger/essence и др.).
-
-## Проверка save/load
-1. Сделайте действие (например FEED).
-2. Подождите autosave (~30s).
-3. Перезагрузите устройство.
-4. Убедитесь, что state восстановился.
-
-## Проверка сенсоров
-- При ярком свете должен расти ESSENCE.
-- При резком движении должен расти INSTABILITY.
-
-## Сценарий первого запуска
-1. Прошить устройство.
-2. Открыть монитор.
-3. Проверить Main экран.
-4. Открыть ActionMenu, выполнить FEED.
-5. Дождаться тик-обновления и autosave.
-
-## Эмулятор
-- Для проверки без платы используйте Wokwi: см. `HOWTO_SIMULATE.md`.
-- Это подходит для базовой проверки FSM/логов, но не заменяет тест на реальном железе.
+## Без железа
+- Логика: `pio test`
+- Эмуляция: `HOWTO_SIMULATE.md`

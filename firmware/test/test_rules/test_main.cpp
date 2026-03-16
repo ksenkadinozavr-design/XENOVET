@@ -1,44 +1,50 @@
 #include <unity.h>
 
-#include "input/input_events.h"
 #include "ui/ui_fsm.h"
 
 using namespace xenovent;
 
-void test_main_to_status_menu() {
+void test_main_to_status() {
   ui::UiFsm fsm;
-  input::InputEvent ev{input::InputEventType::ShortPress, input::ButtonId::Up, false};
-  auto tr = fsm.handleEvent(ev);
-  TEST_ASSERT_EQUAL(ui::UiState::StatusMenu, tr.nextState);
+  auto t = fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Up, false}, 100);
+  TEST_ASSERT_EQUAL(domain::UiScreen::StatusMenu, t.model.screen);
 }
 
-void test_main_to_action_menu() {
+void test_action_menu_confirm() {
   ui::UiFsm fsm;
-  input::InputEvent ev{input::InputEventType::ShortPress, input::ButtonId::Down, false};
-  auto tr = fsm.handleEvent(ev);
-  TEST_ASSERT_EQUAL(ui::UiState::ActionMenu, tr.nextState);
+  fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Down, false}, 100);
+  auto t = fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Action, false}, 110);
+  TEST_ASSERT_EQUAL(domain::UiScreen::Main, t.model.screen);
+  TEST_ASSERT_NOT_EQUAL(domain::ActionType::None, t.triggeredAction);
 }
 
-void test_action_confirm_returns_main_and_triggers() {
+void test_illegal_transition_from_status() {
   ui::UiFsm fsm;
-  fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Down, false});
-  auto tr = fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Action, false});
-  TEST_ASSERT_EQUAL(ui::UiState::Main, tr.nextState);
-  TEST_ASSERT_NOT_EQUAL(domain::ActionType::None, tr.triggeredAction);
+  fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Up, false}, 100);
+  auto t = fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Down, false}, 120);
+  TEST_ASSERT_TRUE(t.illegalTransition);
 }
 
-void test_combo_opens_info_screen() {
+void test_combo_opens_info() {
   ui::UiFsm fsm;
-  auto tr = fsm.handleEvent({input::InputEventType::ComboHold, input::ButtonId::Action, true});
-  TEST_ASSERT_EQUAL(ui::UiState::InfoScreen, tr.nextState);
+  auto t = fsm.handleEvent({input::InputEventType::ComboUpDownHold, input::ButtonId::Action, false}, 100);
+  TEST_ASSERT_EQUAL(domain::UiScreen::InfoScreen, t.model.screen);
+}
+
+void test_timeout_auto_return() {
+  ui::UiFsm fsm;
+  fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Up, false}, 0);
+  auto t = fsm.tick(20000);
+  TEST_ASSERT_EQUAL(domain::UiScreen::Main, t.model.screen);
 }
 
 void setup() {
   UNITY_BEGIN();
-  RUN_TEST(test_main_to_status_menu);
-  RUN_TEST(test_main_to_action_menu);
-  RUN_TEST(test_action_confirm_returns_main_and_triggers);
-  RUN_TEST(test_combo_opens_info_screen);
+  RUN_TEST(test_main_to_status);
+  RUN_TEST(test_action_menu_confirm);
+  RUN_TEST(test_illegal_transition_from_status);
+  RUN_TEST(test_combo_opens_info);
+  RUN_TEST(test_timeout_auto_return);
   UNITY_END();
 }
 
