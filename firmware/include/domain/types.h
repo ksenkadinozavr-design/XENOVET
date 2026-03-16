@@ -85,6 +85,7 @@ struct DeathResult {
 int clampStat(int value);
 CreatureState buildDefaultState();
 CreatureState normalizeState(const CreatureState& state);
+bool isValidState(const CreatureState& state);
 
 int maybeDecayBond(const CreatureState& state, const TickContext& ctx);
 int maybeIncreaseCorruption(const CreatureState& state, const TickContext& ctx);

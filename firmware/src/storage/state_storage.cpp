@@ -9,7 +9,7 @@
 namespace xenovent::storage {
 
 namespace {
-constexpr const char* kNs = "xenovent";
+constexpr const char* kNs = config::app::kStorageNamespace;
 constexpr const char* kKeySaved = "saved";
 constexpr const char* kKeyVersion = "ver";
 
@@ -106,6 +106,12 @@ StorageLoadResult StateStorage::loadState() {
   prefs.end();
 
   out.state = domain::normalizeState(out.state);
+  if (!domain::isValidState(out.state)) {
+    utils::warn("Storage", "loaded state invalid after normalize, using defaults");
+    out.state = defaultState();
+    out.loadedFromNvs = false;
+    return out;
+  }
   out.loadedFromNvs = true;
   return out;
 }

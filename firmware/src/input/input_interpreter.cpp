@@ -35,8 +35,11 @@ bool InputInterpreter::emitButtonEvent(ButtonId id, bool rawPressed, uint32_t no
       tr.pressedSinceMs = nowMs;
       tr.holdFired = false;
     } else if (!tr.holdFired) {
-      outEvent = {InputEventType::ShortPress, id, false};
-      return true;
+      const uint32_t heldMs = nowMs - tr.pressedSinceMs;
+      if (heldMs <= config::ui::kShortPressMaxMs) {
+        outEvent = {InputEventType::ShortPress, id, false};
+        return true;
+      }
     }
   }
 
@@ -61,6 +64,8 @@ bool InputInterpreter::update(const RawButtonState& raw, uint32_t nowMs, InputEv
     const uint32_t startMs = up.pressedSinceMs > down.pressedSinceMs ? up.pressedSinceMs : down.pressedSinceMs;
     if (!comboFired_ && nowMs - startMs >= config::ui::kHoldInfoComboMs) {
       comboFired_ = true;
+      tracks_[idx(ButtonId::Up)].holdFired = true;
+      tracks_[idx(ButtonId::Down)].holdFired = true;
       outEvent = {InputEventType::ComboUpDownHold, ButtonId::Action, false};
       return true;
     }

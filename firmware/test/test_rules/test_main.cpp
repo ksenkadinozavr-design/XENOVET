@@ -18,11 +18,12 @@ void test_action_menu_confirm() {
   TEST_ASSERT_NOT_EQUAL(domain::ActionType::None, t.triggeredAction);
 }
 
-void test_illegal_transition_from_status() {
+void test_status_ignores_irrelevant_event() {
   ui::UiFsm fsm;
   fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Up, false}, 100);
   auto t = fsm.handleEvent({input::InputEventType::ShortPress, input::ButtonId::Down, false}, 120);
-  TEST_ASSERT_TRUE(t.illegalTransition);
+  TEST_ASSERT_FALSE(t.illegalTransition);
+  TEST_ASSERT_EQUAL(domain::UiScreen::StatusMenu, t.model.screen);
 }
 
 void test_combo_opens_info() {
@@ -42,7 +43,7 @@ void setup() {
   UNITY_BEGIN();
   RUN_TEST(test_main_to_status);
   RUN_TEST(test_action_menu_confirm);
-  RUN_TEST(test_illegal_transition_from_status);
+  RUN_TEST(test_status_ignores_irrelevant_event);
   RUN_TEST(test_combo_opens_info);
   RUN_TEST(test_timeout_auto_return);
   UNITY_END();

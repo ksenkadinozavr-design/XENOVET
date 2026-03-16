@@ -11,12 +11,15 @@ void test_clamp_and_normalize() {
   st.instability = 20;
   st.bond = 999;
   st.corruption = -5;
+  st.form = static_cast<domain::CreatureForm>(255);
 
   auto norm = domain::normalizeState(st);
   TEST_ASSERT_EQUAL(0, norm.essence);
   TEST_ASSERT_EQUAL(100, norm.hunger);
   TEST_ASSERT_EQUAL(100, norm.bond);
   TEST_ASSERT_EQUAL(0, norm.corruption);
+  TEST_ASSERT_EQUAL(domain::CreatureForm::Seed, norm.form);
+  TEST_ASSERT_TRUE(domain::isValidState(norm));
 }
 
 void test_apply_tick_sensor_recovery() {
@@ -31,6 +34,18 @@ void test_apply_tick_sensor_recovery() {
   auto after = domain::applyTick(st, ctx);
   TEST_ASSERT_TRUE(after.ageSeconds >= 5);
   TEST_ASSERT_TRUE(after.essence >= 40);
+  TEST_ASSERT_TRUE(domain::isValidState(after));
+}
+
+void test_repeated_ticks_keep_invariants() {
+  domain::CreatureState st = domain::buildDefaultState();
+  domain::TickContext ctx;
+  ctx.dtSeconds = 5;
+
+  for (int i = 0; i < 100; ++i) {
+    st = domain::applyTick(st, ctx);
+    TEST_ASSERT_TRUE(domain::isValidState(st));
+  }
 }
 
 void test_actions_all() {
@@ -57,6 +72,15 @@ void test_actions_all() {
   TEST_ASSERT_TRUE(sleep.after.sleepTicksRemaining > 0);
 }
 
+void test_action_rejected_by_precondition() {
+  domain::CreatureState st = domain::buildDefaultState();
+  st.sleepTicksRemaining = 2;
+
+  auto sleep = domain::applyAction(st, domain::ActionType::Sleep);
+  TEST_ASSERT_FALSE(sleep.accepted);
+  TEST_ASSERT_EQUAL_STRING("precondition_failed", sleep.message);
+}
+
 void test_should_die_and_reset() {
   domain::CreatureState st = domain::buildDefaultState();
   st.essence = 0;
@@ -65,6 +89,7 @@ void test_should_die_and_reset() {
   auto reset = domain::resetAfterDeath(st);
   TEST_ASSERT_EQUAL(1, reset.deaths);
   TEST_ASSERT_EQUAL(domain::CreatureForm::Seed, reset.form);
+  TEST_ASSERT_TRUE(domain::isValidState(reset));
 }
 
 void test_mutation_transition() {
@@ -81,7 +106,9 @@ void setup() {
   UNITY_BEGIN();
   RUN_TEST(test_clamp_and_normalize);
   RUN_TEST(test_apply_tick_sensor_recovery);
+  RUN_TEST(test_repeated_ticks_keep_invariants);
   RUN_TEST(test_actions_all);
+  RUN_TEST(test_action_rejected_by_precondition);
   RUN_TEST(test_should_die_and_reset);
   RUN_TEST(test_mutation_transition);
   UNITY_END();

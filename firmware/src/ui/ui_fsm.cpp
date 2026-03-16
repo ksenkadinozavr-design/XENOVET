@@ -74,8 +74,6 @@ UiTransition UiFsm::handleEvent(const input::InputEvent& event, uint32_t nowMs) 
       if (event.type == input::InputEventType::ShortPress && event.button == input::ButtonId::Action) {
         model_.screen = UiScreen::Main;
         model_.suppressMode = false;
-      } else {
-        t.illegalTransition = true;
       }
       break;
     case UiScreen::ActionMenu:

@@ -52,3 +52,24 @@ pio device monitor -b 115200
 - Запуск/ручная проверка: `HOWTO_RUN.md`
 - Отладка: `HOWTO_DEBUG.md`
 - Эмуляция: `HOWTO_SIMULATE.md`
+
+
+## Known Limitations
+- GPIO mappings still require validation on final production PCB revision.
+- Sensor quality/latency behavior is validated with safe fallbacks, but needs hardware calibration pass.
+- NVS migration strategy currently supports version guard + fallback, without field-level migration scripts.
+
+## Technical Debt Remaining
+- Add explicit migration handlers for `kStateVersion` upgrades.
+- Add integration tests against real ESP32-S3 + sensors + ST7789.
+- Split renderer into skin/theme layer if visual complexity grows.
+
+## Next Recommended Improvements
+1. Add host-mode simulation target for CI deterministic tick replay.
+2. Introduce balance profiles (dev/prod) loaded from config headers.
+3. Add structured telemetry events (tick/action/mutation) for offline balancing analysis.
+
+## Failure Scenarios
+- **No sensor detected**: firmware keeps running with `validAccel/validLight=false` and conservative gameplay effects.
+- **Storage version mismatch**: default state is used and warning is logged.
+- **Invalid runtime state**: tick pipeline normalizes input and validates output state before use.

@@ -6,6 +6,23 @@
 
 namespace xenovent::domain {
 
+namespace {
+
+bool isKnownForm(CreatureForm form) {
+  switch (form) {
+    case CreatureForm::Seed:
+    case CreatureForm::Wisp:
+    case CreatureForm::Sentinel:
+    case CreatureForm::Shade:
+    case CreatureForm::Ascendant:
+    case CreatureForm::Ruinborn:
+      return true;
+  }
+  return false;
+}
+
+}  // namespace
+
 int clampStat(int value) {
   return std::clamp(value, config::balance::kStatMin, config::balance::kStatMax);
 }
@@ -19,7 +36,22 @@ CreatureState normalizeState(const CreatureState& state) {
   out.instability = clampStat(out.instability);
   out.bond = clampStat(out.bond);
   out.corruption = clampStat(out.corruption);
+  if (!isKnownForm(out.form)) {
+    out.form = CreatureForm::Seed;
+  }
+  if (out.sleepTicksRemaining > 1000) out.sleepTicksRemaining = 1000;
+  if (out.suppressTicksRemaining > 1000) out.suppressTicksRemaining = 1000;
   return out;
+}
+
+bool isValidState(const CreatureState& state) {
+  const bool statsValid =
+      state.essence >= config::balance::kStatMin && state.essence <= config::balance::kStatMax &&
+      state.hunger >= config::balance::kStatMin && state.hunger <= config::balance::kStatMax &&
+      state.instability >= config::balance::kStatMin && state.instability <= config::balance::kStatMax &&
+      state.bond >= config::balance::kStatMin && state.bond <= config::balance::kStatMax &&
+      state.corruption >= config::balance::kStatMin && state.corruption <= config::balance::kStatMax;
+  return statsValid && isKnownForm(state.form);
 }
 
 int maybeDecayBond(const CreatureState& state, const TickContext& ctx) {

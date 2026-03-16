@@ -8,23 +8,28 @@ TickResult processTick(const domain::CreatureState& state,
                        const domain::TickContext& ctx) {
   TickResult result;
 
-  // 1) base + sensor + form modifiers + effects.
-  result.state = domain::applyTick(state, ctx);
+  // Stage 0: guard input state.
+  const domain::CreatureState guardedInput = domain::normalizeState(state);
+  result.inputWasNormalized = !domain::isValidState(state) || !(guardedInput.essence == state.essence && guardedInput.hunger == state.hunger && guardedInput.instability == state.instability && guardedInput.bond == state.bond && guardedInput.corruption == state.corruption && guardedInput.form == state.form && guardedInput.sleepTicksRemaining == state.sleepTicksRemaining && guardedInput.suppressTicksRemaining == state.suppressTicksRemaining);
 
-  // 2) derived warnings.
+  // Stage 1: base + sensor + form modifiers + effects.
+  result.state = domain::applyTick(guardedInput, ctx);
+
+  // Stage 2: derived warnings.
   result.flags = domain::deriveUiFlags(result.state);
 
-  // 3) critical/death.
+  // Stage 3: critical/death.
   result.death = domain::shouldDie(result.state);
   if (result.death.died) {
     result.state = domain::resetAfterDeath(result.state);
     result.flags = domain::deriveUiFlags(result.state);
     result.recommendSave = true;
+    result.outputValid = domain::isValidState(result.state);
     result.summary = "death_reset";
     return result;
   }
 
-  // 4) mutation.
+  // Stage 4: mutation.
   result.mutation = evaluateMutation(result.state);
   if (result.mutation.mutated) {
     result.state.form = result.mutation.to;
@@ -35,6 +40,9 @@ TickResult processTick(const domain::CreatureState& state,
     result.summary = "tick_update";
   }
 
+  // Stage 5: final output validation.
+  result.state = domain::normalizeState(result.state);
+  result.outputValid = domain::isValidState(result.state);
   return result;
 }
 

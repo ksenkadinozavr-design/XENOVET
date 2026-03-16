@@ -53,7 +53,7 @@ void GameEngine::handleInput(const input::InputEvent& event, uint32_t nowMs) {
   const auto t = fsm_.handleEvent(event, nowMs);
 
   if (t.illegalTransition) {
-    output_.play(output::FeedbackPattern::Error);
+    utils::debug("UI", "illegal transition rejected");
     return;
   }
 
@@ -98,6 +98,15 @@ void GameEngine::runTick(uint32_t nowMs) {
   state_ = tickResult.state;
   flags_ = tickResult.flags;
   ritualResidual_ = false;
+
+  if (tickResult.inputWasNormalized) {
+    utils::warn("Tick", "input state required normalization");
+  }
+  if (!tickResult.outputValid) {
+    utils::error("Tick", "output state failed validation");
+    state_ = domain::buildDefaultState();
+    flags_ = domain::deriveUiFlags(state_);
+  }
 
   if (tickResult.death.died) {
     output_.play(output::FeedbackPattern::Death);

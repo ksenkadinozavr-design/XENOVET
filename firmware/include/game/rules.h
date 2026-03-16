@@ -10,6 +10,8 @@ struct TickResult {
   domain::MutationResult mutation{};
   domain::DeathResult death{};
   bool recommendSave = false;
+  bool inputWasNormalized = false;
+  bool outputValid = true;
   const char* summary = "tick";
 };
 
